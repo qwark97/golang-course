@@ -65,6 +65,7 @@ func main() {
 	flag.Parse()
 
 	file, err := os.Open(*csvFilename)
+	defer file.Close()
 	checkErr(err, fmt.Sprintf("Failed to open csv file: %s\n", *csvFilename))
 
 	r := csv.NewReader(file)
