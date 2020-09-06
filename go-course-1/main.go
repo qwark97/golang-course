@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 func checkErr(err error, msg string) {
@@ -33,14 +34,26 @@ func parseLines(lines [][]string) []problem {
 	return res
 }
 
-func startQuestioning(problems []problem) int {
+func startQuiz(problems []problem, quizTimeout int) int {
 	finalResult := 0
+	timer := time.NewTimer(time.Duration(quizTimeout) * time.Second)
 	for i, p := range problems {
-		fmt.Printf("Problem #%d: %s = \n", i+1, p.q)
+		fmt.Printf("Problem #%d: %s = ", i+1, p.q)
 		var answer string
-		fmt.Scanf("%s", &answer)
-		if answer == p.a {
-			finalResult++
+		answerCh := make(chan string)
+		go func() {
+			fmt.Scanf("%s", &answer)
+			answerCh <- answer
+		}()
+
+		select {
+		case <-timer.C:
+			fmt.Printf("\nTime has finished\n")
+			return finalResult
+		case answer := <-answerCh:
+			if answer == p.a {
+				finalResult++
+			}
 		}
 	}
 	return finalResult
@@ -48,6 +61,7 @@ func startQuestioning(problems []problem) int {
 
 func main() {
 	csvFilename := flag.String("csv", "problems.csv", "A csv file in a format of 'problem,question'")
+	quizTimeout := flag.Int("timeout", 30, "Time for solving problems in seconds")
 	flag.Parse()
 
 	file, err := os.Open(*csvFilename)
@@ -59,7 +73,7 @@ func main() {
 
 	problems := parseLines(lines)
 
-	finalResult := startQuestioning(problems)
+	finalResult := startQuiz(problems, *quizTimeout)
 
 	fmt.Printf("Final result: %d/%d\n", finalResult, len(problems))
 
