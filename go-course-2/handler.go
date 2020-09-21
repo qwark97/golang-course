@@ -1,7 +1,6 @@
 package urlshort
 
 import (
-	"fmt"
 	"net/http"
 
 	"gopkg.in/yaml.v2"
@@ -20,8 +19,7 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 			http.Redirect(w, r, path, http.StatusFound)
 			return
 		}
-		fmt.Fprint(w, "Im working like this\n")
-		// fallback.ServeHTTP(w, r)
+		fallback.ServeHTTP(w, r)
 	}
 }
 
