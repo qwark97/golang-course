@@ -19,7 +19,7 @@ func main() {
 	file, err := os.Open(*filename)
 	cyoa.ErrHandle(err)
 
-	story, err := cyoa.JsonStory(file)
+	story, err := cyoa.JSONStory(file)
 	cyoa.ErrHandle(err)
 
 	h := cyoa.NewHandler(story)

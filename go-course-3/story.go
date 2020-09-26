@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"text/template"
 )
 
@@ -44,11 +45,22 @@ type handler struct {
 }
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	err := tpl.Execute(w, h.s["intro"])
-	ErrHandle(err)
+	path := strings.TrimSpace(r.URL.Path)
+	if path == "" || path == "/" {
+		path = "/intro"
+	}
+	path = path[1:]
+
+	if chapter, ok := h.s[path]; ok {
+		err := tpl.Execute(w, chapter)
+		HTTPErrHandle(w, err)
+		return
+	}
+	http.Error(w, "Chapter not found.", http.StatusNotFound)
 }
 
-func JsonStory(r io.Reader) (Story, error) {
+// JSONStory reads stroy from JSON file
+func JSONStory(r io.Reader) (Story, error) {
 	var story Story
 	decoder := json.NewDecoder(r)
 
@@ -58,20 +70,32 @@ func JsonStory(r io.Reader) (Story, error) {
 	return story, nil
 }
 
+// ErrHandle is helper function to handle error during runtime
 func ErrHandle(err error) {
 	if err != nil {
 		log.Panic(err)
 	}
 }
 
+// HTTPErrHandle is helper function to handle http internal server error
+func HTTPErrHandle(w http.ResponseWriter, err error) {
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Something went wrong...", http.StatusInternalServerError)
+	}
+}
+
+// Story to Create Your Own Adwenture
 type Story map[string]Chapter
 
+// Chapter is a part of the story
 type Chapter struct {
 	Title      string   `json:"title"`
 	Paragraphs []string `json:"story"`
 	Options    []Option `json:"options"`
 }
 
+// Option to choose to move story forward
 type Option struct {
 	Text    string `json:"text"`
 	Chapter string `json:"arc"`
