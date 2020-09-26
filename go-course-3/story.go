@@ -36,6 +36,7 @@ var defaultHandlerTmpl = `
 </html>
 `
 
+// NewHandler serves passed story
 func NewHandler(s Story) http.Handler {
 	return handler{s}
 }
