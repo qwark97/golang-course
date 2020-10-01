@@ -36,24 +36,51 @@ var defaultHandlerTmpl = `
 </html>
 `
 
-// NewHandler serves passed story
-func NewHandler(s Story) http.Handler {
-	return handler{s}
-}
-
-type handler struct {
-	s Story
-}
-
-func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func defaultPathFunc(r *http.Request) string {
 	path := strings.TrimSpace(r.URL.Path)
 	if path == "" || path == "/" {
 		path = "/intro"
 	}
-	path = path[1:]
+	return path[1:]
+}
+
+// HandlerOpttion to allow optional parameters
+type HandlerOpttion func(h *handler)
+
+// WithTemplate allows to add custom template to story
+func WithTemplate(t *template.Template) HandlerOpttion {
+	return func(h *handler) {
+		h.t = t
+	}
+}
+
+// WithPathFunc allows to add custom paths handler
+func WithPathFunc(pathFunc func(r *http.Request) string) HandlerOpttion {
+	return func(h *handler) {
+		h.pathFunc = pathFunc
+	}
+}
+
+// NewHandler serves passed story
+func NewHandler(s Story, opts ...HandlerOpttion) http.Handler {
+	h := handler{s, tpl, defaultPathFunc}
+	for _, opt := range opts {
+		opt(&h)
+	}
+	return h
+}
+
+type handler struct {
+	s        Story
+	t        *template.Template
+	pathFunc func(r *http.Request) string
+}
+
+func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := h.pathFunc(r)
 
 	if chapter, ok := h.s[path]; ok {
-		err := tpl.Execute(w, chapter)
+		err := h.t.Execute(w, chapter)
 		HTTPErrHandle(w, err)
 		return
 	}
